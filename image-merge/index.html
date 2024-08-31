@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image Merger</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        canvas {
+            border: 1px solid black;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Image Merger</h1>
+    <input type="file" id="fileInput" multiple accept="image/*">
+    <button onclick="mergeImages()">Merge Images</button>
+    <br>
+    <canvas id="canvas"></canvas>
+    <br>
+    <a id="downloadLink" download="merged-image.png">Download Merged Image</a>
+
+    <script>
+        const linkElement = document.getElementById('downloadLink');
+        const fileInput = document.getElementById('fileInput');
+        let elementsFound = true;
+        if (!linkElement || !fileInput) {
+            alert('Unable to initialize: Missing required elements.');
+            elementsFound = false;
+        }
+
+        if (elementsFound) fileInput.addEventListener('change', mergeImages);
+        
+        function mergeImages() {
+            const input = document.getElementById('fileInput');
+            const files = Array.from(input.files);
+            
+            if (files.length === 0) {
+                alert('Please upload at least one image.');
+                return;
+            }
+            files.sort((a, b) => a.name.localeCompare(b.name));
+            
+            const nameParts = files[0].name.split('.');
+            nameParts.pop();
+            const name = nameParts.join('.').replace(/\-[0-9]{2,2}$/, '');
+            
+            linkElement.setAttribute('download', name);
+
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+
+            let totalWidth = 0;
+            let maxHeight = 0;
+            const images = [];
+
+            function renderAndDownload() {
+                canvas.width = totalWidth;
+                canvas.height = maxHeight;
+                let currentX = 0;
+                images.forEach(img => {
+                    ctx.drawImage(img, currentX, 0);
+                    currentX += img.width;
+                });
+                if (!elementsFound) return;
+                linkElement.href = canvas.toDataURL('image/png');
+                linkElement.style.display = 'inline';
+                linkElement.click();
+            }
+
+            files.forEach((file, index) => {
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = function () {
+                    images[index] = img;
+                    totalWidth += img.width;
+                    maxHeight = Math.max(maxHeight, img.height);
+                    if (images.length !== files.length || !images.every(Boolean)) return;
+                    renderAndDownload();
+                };
+            });
+        }
+    </script>
+</body>
+</html>
+
